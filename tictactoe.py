@@ -121,10 +121,12 @@ def main():
     font = pygame.font.SysFont("Comic Sans", 200)
     font_2 = pygame.font.SysFont("Comic Sans", 24)
 
+    # Events for the different results
     RESET = pygame.USEREVENT
     WIN = pygame.USEREVENT + 1
     DRAW = pygame.USEREVENT + 2
 
+    # Clears board and starts loop
     pygame.event.post(pygame.event.Event(RESET))
     running = True
 

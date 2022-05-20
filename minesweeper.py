@@ -19,6 +19,8 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+        
+        keys = pygame.key.get_pressed()
             
         pygame.display.flip()
         clock.tick(60)

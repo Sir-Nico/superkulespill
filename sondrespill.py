@@ -1,4 +1,3 @@
-from cgitb import small
 import pygame
 from math import atan2, pi
 from random import choice
