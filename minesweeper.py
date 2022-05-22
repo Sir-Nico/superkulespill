@@ -47,7 +47,7 @@ def get_adjacencies(grid):
                 adjacencies = 0
                 # Upper row
                 if i - 1 >= 0:
-                    if 0 <= j+k-1 < len(row):
+                    if 0 < j+k-1 < len(row):
                         for k in range(3):
                             if grid[i-1][j+k-1][0] == "X":
                                 adjacencies += 1
@@ -89,11 +89,11 @@ def main():
     pygame.display.set_caption("Minesweeper")
     clock = pygame.time.Clock()
     fps = 60
-    font = pygame.font.SysFont("Comic sans", 16)
 
+    tile_size = 24
+    font = pygame.font.SysFont("Comic sans", tile_size * 2 // 3)
     grid_w, grid_h = 30, 16
     grid = grid_setup((grid_w, grid_h), 50)
-    tile_size = 24
     grid_pos = pygame.math.Vector2((100, 100))
     lmb_down = False
     rmb_down = False

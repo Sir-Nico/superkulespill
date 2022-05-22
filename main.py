@@ -2,6 +2,7 @@ import sys
 import tkinter
 import tictactoe
 import sondrespill
+import minesweeper
 
 
 def window_setup():
@@ -14,6 +15,9 @@ def window_setup():
     sondre_btn = tkinter.Button(root, text='NYHET: sondre spill', 
                         command=lambda:play_game(root, sondrespill))
     sondre_btn.pack(anchor="center")
+    mine_btn = tkinter.Button(root, text="Minesweeper",
+                        command=lambda:play_game(root, minesweeper))
+    mine_btn.pack()
     return root  
 
 

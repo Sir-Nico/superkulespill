@@ -1,0 +1,1 @@
+1. Mine detection wraps around from the far left to the far right
