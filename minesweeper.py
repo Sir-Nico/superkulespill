@@ -45,11 +45,13 @@ def get_adjacencies(grid):
         for j, tile in enumerate(row):
             if tile[0] != "X":
                 adjacencies = 0
+                upper_row = i-1
+                lower_row = i+1
                 # Upper row
-                if i - 1 >= 0:
-                    if 0 < j+k-1 < len(row):
-                        for k in range(3):
-                            if grid[i-1][j+k-1][0] == "X":
+                if upper_row >= 0:
+                    for k in range(3):
+                        if 0 <= j+k-1 < len(row):
+                            if grid[upper_row][j+k-1][0] == "X":
                                 adjacencies += 1
                 # Same row
                 if j - 1 >= 0:
@@ -59,10 +61,10 @@ def get_adjacencies(grid):
                     if row[j+1][0] == "X":
                         adjacencies += 1
                 # Lower row
-                if i + 1 < len(grid):
+                if lower_row < len(grid):
                     for k in range(3):
-                        if 0 < j+k-1 < len(row):
-                            if grid[i+1][j+k-1][0] == "X":
+                        if 0 <= j+k-1 < len(row):
+                            if grid[lower_row][j+k-1][0] == "X":
                                 adjacencies += 1
                 tile[0] = adjacencies
 
@@ -75,6 +77,8 @@ def get_tile_from_mouse(grid, size, pos):
     current_tile //= size
     current_tile = list(current_tile)
     if current_tile[1] > len(grid)-1 or current_tile[0] > len(grid[0])-1:
+        return None
+    if current_tile[0] < 0:
         return None
     x = int(current_tile[0])
     y = int(current_tile[1])
@@ -91,9 +95,9 @@ def main():
     fps = 60
 
     tile_size = 24
-    font = pygame.font.SysFont("Comic sans", tile_size * 2 // 3)
+    font = pygame.font.SysFont("Comic sans", tile_size * 4 // 3)
     grid_w, grid_h = 30, 16
-    grid = grid_setup((grid_w, grid_h), 50)
+    grid = grid_setup((grid_w, grid_h), 99)
     grid_pos = pygame.math.Vector2((100, 100))
     lmb_down = False
     rmb_down = False
