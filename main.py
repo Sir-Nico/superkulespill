@@ -9,8 +9,8 @@ def window_setup():
     root = tkinter.Tk()
     root.title("superkule spill")
     root.geometry("400x300")
-    ttt_btn = tkinter.Button(root, text = 'Tic Tac Toe',
-                        command = lambda:play_game(root, tictactoe))
+    ttt_btn = tkinter.Button(root, text="Tic Tac Toe",
+                        command=lambda:play_game(root, tictactoe))
     ttt_btn.pack(anchor="center")
     sondre_btn = tkinter.Button(root, text='NYHET: sondre spill', 
                         command=lambda:play_game(root, sondrespill))

@@ -1,3 +1,4 @@
+from typing import Type
 import pygame
 import math
 import random
@@ -78,12 +79,25 @@ def get_tile_from_mouse(grid, size, pos):
     current_tile = list(current_tile)
     if current_tile[1] > len(grid)-1 or current_tile[0] > len(grid[0])-1:
         return None
-    if current_tile[0] < 0:
+    if current_tile[0] < 0 or current_tile[1] < 0:
         return None
     x = int(current_tile[0])
     y = int(current_tile[1])
     current_tile = y, x
     return current_tile
+
+
+def reveal_all_tiles(grid):
+    for row in grid:
+        for tile in row:
+            if tile[2]:
+                continue
+            tile[1] = False
+
+
+def reveal_cluster(grid):
+    pass
+
 
 def main():
     # Pygame setup
@@ -102,6 +116,7 @@ def main():
     lmb_down = False
     rmb_down = False
     space_down = False
+    is_dead = False
 
     # Main loop
     running = True
@@ -110,43 +125,53 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-        
-        mouse_tile = get_tile_from_mouse(grid, tile_size, grid_pos)
-        mouse = pygame.mouse.get_pressed()
-        if mouse[0]:
-            if not lmb_down:
-                if mouse_tile:
-                    print(mouse_tile)
-                    if grid[mouse_tile[0]][mouse_tile[1]][1]:
-                        if grid[mouse_tile[0]][mouse_tile[1]][2] == False:
-                            grid[mouse_tile[0]][mouse_tile[1]][1] = False
-                lmb_down = True
-        else:
-            lmb_down = False
-        if mouse[2]:
-            if not rmb_down:
-                if mouse_tile:
-                    if grid[mouse_tile[0]][mouse_tile[1]][2]:
-                        grid[mouse_tile[0]][mouse_tile[1]][2] = False
-                    else:
-                        grid[mouse_tile[0]][mouse_tile[1]][2] = True
-                rmb_down = True
-        else:
-            rmb_down = False
 
         keys = pygame.key.get_pressed()
+        mouse_tile = get_tile_from_mouse(grid, tile_size, grid_pos)
+        mouse = pygame.mouse.get_pressed()
+
+        if is_dead:
+            reveal_all_tiles(grid)
+            if keys[pygame.K_SPACE]:
+                if not space_down:
+                    grid = grid_setup((grid_w, grid_h), 99)
+                    is_dead = False
+                    space_down = True
+            else:
+                space_down = False
+            
+        if not is_dead:
+            if mouse[0]:
+                if not lmb_down:
+                    if mouse_tile:
+                        print(mouse_tile)
+                        if grid[mouse_tile[0]][mouse_tile[1]][1]:
+                            if grid[mouse_tile[0]][mouse_tile[1]][2] == False:
+                                grid[mouse_tile[0]][mouse_tile[1]][1] = False
+                        try:
+                            if grid[mouse_tile[0]][mouse_tile[1]][0] == "X":
+                                is_dead = True
+                        except TypeError:
+                            pass
+                    lmb_down = True
+            else:
+                lmb_down = False
+
+            if mouse[2]:
+                if not rmb_down:
+                    if mouse_tile:
+                        if grid[mouse_tile[0]][mouse_tile[1]][2]:
+                            grid[mouse_tile[0]][mouse_tile[1]][2] = False
+                        else:
+                            grid[mouse_tile[0]][mouse_tile[1]][2] = True
+                    rmb_down = True
+            else:
+                rmb_down = False
+
         if keys[pygame.K_ESCAPE]:
             pygame.quit()
-        if keys[pygame.K_SPACE]:
-            if not space_down:
-                grid = grid_setup((grid_w, grid_h), 99)
-                space_down = True
-        else:
-            space_down = False
         if keys[pygame.K_u]:
-            for row in grid:
-                for tile in row:
-                    tile[1] = False
+            reveal_all_tiles(grid)
 
         draw_grid(screen, grid, tile_size, font, grid_pos)
         pygame.display.update()
