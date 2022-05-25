@@ -238,6 +238,8 @@ def main():
             pygame.event.post(pygame.event.Event(pygame.QUIT))
         if keys[pygame.K_u]:
             reveal_all_tiles(grid)
+        if keys[pygame.K_b]:
+            pygame.display.set_caption("Bosnia 1994 Simulator")  # If you know you know
 
         screen.blit(background, (0, 0))
         draw_grid(screen, grid, tile_size, font, grid_pos, tile_sprites, is_dead)
