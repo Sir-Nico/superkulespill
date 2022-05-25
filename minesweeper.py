@@ -144,6 +144,7 @@ def main():
     screen_w, screen_h = 960, 720
     screen = pygame.display.set_mode((screen_w, screen_h))
     pygame.display.set_caption("Minesweeper")
+    pygame.display.set_icon(pygame.image.load("Assets/minesweeper/mine.png"))
     clock = pygame.time.Clock()
     fps = 60
 
@@ -240,6 +241,7 @@ def main():
             reveal_all_tiles(grid)
         if keys[pygame.K_b]:
             pygame.display.set_caption("Bosnia 1994 Simulator")  # If you know you know
+            pygame.display.set_icon(pygame.image.load("Assets/minesweeper/takethel.png"))
 
         screen.blit(background, (0, 0))
         draw_grid(screen, grid, tile_size, font, grid_pos, tile_sprites, is_dead)
