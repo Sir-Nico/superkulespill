@@ -1,3 +1,4 @@
+from turtle import back
 import pygame
 import math
 import random
@@ -9,7 +10,9 @@ def grid_setup(dimensions, mines):
     for i in range(dimensions[1]):
         grid.append([])
         for j in range(dimensions[0]):
-            grid[i].append(["", True, False]) # Adds a tile as a list that contains Mine/Adj. Mines, is_hidden, and is_flagged
+            # Adds a tile as a list that contains Mine/Adj. Mines, is_hidden, and is_flagged
+            # And an optional parameter which only exists if it is a clicked mine
+            grid[i].append(["", True, False])
     while mines > 0:
         x = random.randint(0, dimensions[0]-1)
         y = random.randint(0, dimensions[1]-1)
@@ -20,29 +23,41 @@ def grid_setup(dimensions, mines):
     return grid
 
 
-def draw_grid(screen, grid, tile_size, font, pos, sprites):
-    tile_sprite = None
+def draw_grid(screen, grid, tile_size, font, pos, sprites, is_dead):
     for i, row in enumerate(grid):
         for j, tile in enumerate(row):
-            tile_sprite = None
+            adj_text = None
             if not tile[1]:
                 if tile[0] == "X":
-                    tile_sprite = sprites[1]
+                    tile_sprite = sprites[2]
                 else:
-                    tile_sprite = None
+                    tile_sprite = sprites[0]
                     adj_text = font.render(str(tile[0]), True, "black")
                     adj_rect = adj_text.get_rect()
-                    adj_rect.topleft = (j * tile_size + pos.x + 5, i * tile_size + pos.y)
-                    pygame.draw.rect(screen, (200,200,200), (j * tile_size + pos.x, i * tile_size + pos.y, tile_size-1, tile_size-1))
-                    if tile[0] > 0:
-                        screen.blit(adj_text, adj_rect)
+                    adj_rect.topleft = (
+                        j * tile_size + pos.x + 5, i * tile_size + pos.y)
             elif tile[2]:
-                tile_sprite = sprites[4]
+                tile_sprite = sprites[5]
+                if tile[0] == "X" and is_dead:
+                    tile_sprite = sprites[4]
             else:
-                pygame.draw.rect(screen, (50,50,50), (j * tile_size + pos.x, i * tile_size + pos.y, tile_size-1, tile_size-1))
-                tile_sprite = sprites[0]
+                pygame.draw.rect(screen, (50, 50, 50), (j * tile_size +
+                                 pos.x, i * tile_size + pos.y, tile_size-1, tile_size-1))
+                tile_sprite = sprites[1]
+
+            if len(tile) > 3 and is_dead:
+                tile_sprite = sprites[3]
+
             if tile_sprite:
-                screen.blit(tile_sprite, (j * tile_size + pos.x, i * tile_size + pos.y,))
+                if tile_sprite == sprites[2] or tile_sprite == sprites[4]:
+                    screen.blit(sprites[0], (j * tile_size +
+                                pos.x, i * tile_size + pos.y,))
+                screen.blit(tile_sprite, (j * tile_size +
+                            pos.x, i * tile_size + pos.y,))
+            if adj_text:
+                if tile[0] > 0:
+                    screen.blit(adj_text, adj_rect)
+
 
 
 def get_adjacencies(grid):
@@ -103,13 +118,15 @@ def reveal_all_tiles(grid):
 def reveal_tile(grid, y, x):
     grid[y][x][1] = False
     if isinstance(grid[y][x][0], str):
-        return True
+        grid[y][x].append(True)
+        return True, grid
     if grid[y][x][0] == 0:
-        for nx, ny in [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]: # Sjekker naboer
+        for nx, ny in [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]:  # Sjekker naboer
             if x + nx >= 0 and x + nx < len(grid[0]) and y + ny >= 0 and y+ny < len(grid):
                 if grid[y+ny][x+nx][1] and not grid[y+ny][x+nx][2]:
                     reveal_tile(grid, y+ny, x+nx)
-    return False
+    return False, grid
+
 
 def main():
     # Pygame setup
@@ -121,23 +138,24 @@ def main():
     fps = 60
 
     tile_size = 24
-    font = pygame.font.SysFont("Comic sans", tile_size * 4 // 3)
+    font = pygame.font.SysFont("idk", tile_size * 4 // 3)
     grid_w, grid_h = 30, 16
     grid = grid_setup((grid_w, grid_h), 99)
-    grid_pos = pygame.math.Vector2((100, 100))
+    grid_pos = pygame.math.Vector2((120, 200))
     lmb_down = False
     rmb_down = False
     space_down = False
     is_dead = False
-    has_started = False
-     
+
     # Loading in assets and scaling them to tile size
+    tile_revealed_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/tile_revealed.png"), (tile_size, tile_size)).convert_alpha()
     tile_hidden_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/tile_hidden.png"), (tile_size, tile_size)).convert_alpha()
     mine_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/mine.png"), (tile_size, tile_size)).convert_alpha()
     mine_clicked_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/takethel.png"), (tile_size, tile_size)).convert_alpha()
     false_flag_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/youdungoofed.png"), (tile_size, tile_size)).convert_alpha()
     tile_flagged_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/tile_flagged.png"), (tile_size, tile_size)).convert_alpha()
-    sprites = [tile_hidden_sprite, mine_sprite, mine_clicked_sprite, false_flag_sprite, tile_flagged_sprite]
+    sprites = [tile_revealed_sprite, tile_hidden_sprite, mine_sprite, mine_clicked_sprite, false_flag_sprite, tile_flagged_sprite]
+    background = pygame.image.load("Assets/minesweeper/background.png")
 
     # Main loop
     running = True
@@ -148,9 +166,13 @@ def main():
                 pygame.quit()
                 break
 
-        keys = pygame.key.get_pressed()
-        mouse_tile = get_tile_from_mouse(grid, tile_size, grid_pos)
-        mouse = pygame.mouse.get_pressed()
+        try:
+            keys = pygame.key.get_pressed()
+            mouse_tile = get_tile_from_mouse(grid, tile_size, grid_pos)
+            mouse = pygame.mouse.get_pressed()
+        except pygame.error:
+            pygame.quit()
+            break
 
         if is_dead:
             reveal_all_tiles(grid)
@@ -161,12 +183,12 @@ def main():
                     space_down = True
             else:
                 space_down = False
-            
+
         if not is_dead:
             if mouse[0]:
                 if not lmb_down:
                     if mouse_tile and grid[mouse_tile[0]][mouse_tile[1]][1] and not grid[mouse_tile[0]][mouse_tile[1]][2]:
-                                is_dead = reveal_tile(grid, mouse_tile[0], mouse_tile[1])
+                        is_dead, grid = reveal_tile(grid, mouse_tile[0], mouse_tile[1])
                     lmb_down = True
             else:
                 lmb_down = False
@@ -187,7 +209,8 @@ def main():
         if keys[pygame.K_u]:
             reveal_all_tiles(grid)
 
-        draw_grid(screen, grid, tile_size, font, grid_pos, sprites)
+        screen.blit(background, (0, 0))
+        draw_grid(screen, grid, tile_size, font, grid_pos, sprites, is_dead)
         pygame.display.update()
         clock.tick(fps)
 
