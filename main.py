@@ -1,4 +1,5 @@
 import sys
+import pygame
 import tkinter
 import tictactoe
 import sondrespill
@@ -24,6 +25,7 @@ def window_setup():
 def play_game(root, game):
     root.destroy()
     game.main()
+    pygame.quit()
     root = window_setup()
 
 def main():

@@ -1,4 +1,3 @@
-from typing import Type
 import pygame
 import math
 import random
@@ -21,13 +20,16 @@ def grid_setup(dimensions, mines):
     return grid
 
 
-def draw_grid(screen, grid, tile_size, font, pos):
+def draw_grid(screen, grid, tile_size, font, pos, sprites):
+    tile_sprite = None
     for i, row in enumerate(grid):
         for j, tile in enumerate(row):
+            tile_sprite = None
             if not tile[1]:
                 if tile[0] == "X":
-                    pygame.draw.rect(screen, (200,50,50), (j * tile_size + pos.x, i * tile_size + pos.y, tile_size-1, tile_size-1))
+                    tile_sprite = sprites[1]
                 else:
+                    tile_sprite = None
                     adj_text = font.render(str(tile[0]), True, "black")
                     adj_rect = adj_text.get_rect()
                     adj_rect.topleft = (j * tile_size + pos.x + 5, i * tile_size + pos.y)
@@ -35,9 +37,12 @@ def draw_grid(screen, grid, tile_size, font, pos):
                     if tile[0] > 0:
                         screen.blit(adj_text, adj_rect)
             elif tile[2]:
-                pygame.draw.rect(screen, (50,200,50), (j * tile_size + pos.x, i * tile_size + pos.y, tile_size-1, tile_size-1))
+                tile_sprite = sprites[4]
             else:
                 pygame.draw.rect(screen, (50,50,50), (j * tile_size + pos.x, i * tile_size + pos.y, tile_size-1, tile_size-1))
+                tile_sprite = sprites[0]
+            if tile_sprite:
+                screen.blit(tile_sprite, (j * tile_size + pos.x, i * tile_size + pos.y,))
 
 
 def get_adjacencies(grid):
@@ -95,9 +100,16 @@ def reveal_all_tiles(grid):
             tile[1] = False
 
 
-def reveal_cluster(grid):
-    pass
-
+def reveal_tile(grid, y, x):
+    grid[y][x][1] = False
+    if isinstance(grid[y][x][0], str):
+        return True
+    if grid[y][x][0] == 0:
+        for nx, ny in [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]: # Sjekker naboer
+            if x + nx >= 0 and x + nx < len(grid[0]) and y + ny >= 0 and y+ny < len(grid):
+                if grid[y+ny][x+nx][1] and not grid[y+ny][x+nx][2]:
+                    reveal_tile(grid, y+ny, x+nx)
+    return False
 
 def main():
     # Pygame setup
@@ -117,6 +129,15 @@ def main():
     rmb_down = False
     space_down = False
     is_dead = False
+    has_started = False
+     
+    # Loading in assets and scaling them to tile size
+    tile_hidden_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/tile_hidden.png"), (tile_size, tile_size)).convert_alpha()
+    mine_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/mine.png"), (tile_size, tile_size)).convert_alpha()
+    mine_clicked_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/takethel.png"), (tile_size, tile_size)).convert_alpha()
+    false_flag_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/youdungoofed.png"), (tile_size, tile_size)).convert_alpha()
+    tile_flagged_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/tile_flagged.png"), (tile_size, tile_size)).convert_alpha()
+    sprites = [tile_hidden_sprite, mine_sprite, mine_clicked_sprite, false_flag_sprite, tile_flagged_sprite]
 
     # Main loop
     running = True
@@ -125,6 +146,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
+                break
 
         keys = pygame.key.get_pressed()
         mouse_tile = get_tile_from_mouse(grid, tile_size, grid_pos)
@@ -143,16 +165,8 @@ def main():
         if not is_dead:
             if mouse[0]:
                 if not lmb_down:
-                    if mouse_tile:
-                        print(mouse_tile)
-                        if grid[mouse_tile[0]][mouse_tile[1]][1]:
-                            if grid[mouse_tile[0]][mouse_tile[1]][2] == False:
-                                grid[mouse_tile[0]][mouse_tile[1]][1] = False
-                        try:
-                            if grid[mouse_tile[0]][mouse_tile[1]][0] == "X":
-                                is_dead = True
-                        except TypeError:
-                            pass
+                    if mouse_tile and grid[mouse_tile[0]][mouse_tile[1]][1] and not grid[mouse_tile[0]][mouse_tile[1]][2]:
+                                is_dead = reveal_tile(grid, mouse_tile[0], mouse_tile[1])
                     lmb_down = True
             else:
                 lmb_down = False
@@ -169,11 +183,11 @@ def main():
                 rmb_down = False
 
         if keys[pygame.K_ESCAPE]:
-            pygame.quit()
+            pygame.event.post(pygame.event.Event(pygame.QUIT))
         if keys[pygame.K_u]:
             reveal_all_tiles(grid)
 
-        draw_grid(screen, grid, tile_size, font, grid_pos)
+        draw_grid(screen, grid, tile_size, font, grid_pos, sprites)
         pygame.display.update()
         clock.tick(fps)
 
