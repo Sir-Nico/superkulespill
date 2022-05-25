@@ -38,7 +38,7 @@ def draw_grid(screen, grid, tile_size, font, pos, sprites, is_dead):
                         j * tile_size + pos.x + 5, i * tile_size + pos.y)
             elif tile[2]:
                 tile_sprite = sprites[5]
-                if tile[0] == "X" and is_dead:
+                if tile[0] != "X" and is_dead:
                     tile_sprite = sprites[4]
             else:
                 pygame.draw.rect(screen, (50, 50, 50), (j * tile_size +
@@ -128,6 +128,16 @@ def reveal_tile(grid, y, x):
     return False, grid
 
 
+def draw_face(screen, face_sprites, is_clicked, is_dead):
+    face_pos = (442, 80)
+    face_image = face_sprites[0]
+    if is_clicked:
+        face_image = face_sprites[1]
+    elif is_dead:
+        face_image = face_sprites[3]
+
+    screen.blit(face_image, face_pos)
+
 def main():
     # Pygame setup
     pygame.init()
@@ -140,22 +150,32 @@ def main():
     tile_size = 24
     font = pygame.font.SysFont("idk", tile_size * 4 // 3)
     grid_w, grid_h = 30, 16
-    grid = grid_setup((grid_w, grid_h), 99)
+    mines = 99
+    remaining_mines = 99
+    grid = grid_setup((grid_w, grid_h), mines)
     grid_pos = pygame.math.Vector2((120, 200))
     lmb_down = False
     rmb_down = False
-    space_down = False
     is_dead = False
+    face_is_clicked = False
 
-    # Loading in assets and scaling them to tile size
+    # Loading in background image
+    background = pygame.image.load("Assets/minesweeper/background.png")
+    
+    # Loading in assets and scaling tile assets to tile size
     tile_revealed_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/tile_revealed.png"), (tile_size, tile_size)).convert_alpha()
     tile_hidden_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/tile_hidden.png"), (tile_size, tile_size)).convert_alpha()
     mine_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/mine.png"), (tile_size, tile_size)).convert_alpha()
     mine_clicked_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/takethel.png"), (tile_size, tile_size)).convert_alpha()
     false_flag_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/youdungoofed.png"), (tile_size, tile_size)).convert_alpha()
     tile_flagged_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/tile_flagged.png"), (tile_size, tile_size)).convert_alpha()
-    sprites = [tile_revealed_sprite, tile_hidden_sprite, mine_sprite, mine_clicked_sprite, false_flag_sprite, tile_flagged_sprite]
-    background = pygame.image.load("Assets/minesweeper/background.png")
+    tile_sprites = [tile_revealed_sprite, tile_hidden_sprite, mine_sprite, mine_clicked_sprite, false_flag_sprite, tile_flagged_sprite]
+
+    face_sprite = pygame.image.load("Assets/minesweeper/face_normal.png")
+    face_clicked_sprite = pygame.image.load("Assets/minesweeper/face_clicked.png")
+    face_won_sprite = pygame.image.load("Assets/minesweeper/face_won.png")
+    face_dead_sprite = pygame.image.load("Assets/minesweeper/face_dead.png")
+    face_sprites = [face_sprite, face_clicked_sprite, face_won_sprite, face_dead_sprite]
 
     # Main loop
     running = True
@@ -170,36 +190,46 @@ def main():
             keys = pygame.key.get_pressed()
             mouse_tile = get_tile_from_mouse(grid, tile_size, grid_pos)
             mouse = pygame.mouse.get_pressed()
+            mousepos = pygame.math.Vector2(pygame.mouse.get_pos())
         except pygame.error:
             pygame.quit()
             break
 
         if is_dead:
             reveal_all_tiles(grid)
-            if keys[pygame.K_SPACE]:
-                if not space_down:
-                    grid = grid_setup((grid_w, grid_h), 99)
-                    is_dead = False
-                    space_down = True
-            else:
-                space_down = False
+            if mouse[0] and 442 <= mousepos.x <= 505 and 80 <= mousepos.y <= 143:
+                face_is_clicked = True
+                grid = grid_setup((grid_w, grid_h), 99)
+                is_dead = False
 
         if not is_dead:
             if mouse[0]:
                 if not lmb_down:
                     if mouse_tile and grid[mouse_tile[0]][mouse_tile[1]][1] and not grid[mouse_tile[0]][mouse_tile[1]][2]:
                         is_dead, grid = reveal_tile(grid, mouse_tile[0], mouse_tile[1])
+                    if 442 <= mousepos.x <= 505 and 80 <= mousepos.y <= 143:
+                        face_is_clicked = True
+                        grid = grid_setup((grid_w, grid_h), 99)
+                        is_dead = False
+                    else:
+                        face_is_clicked = False
                     lmb_down = True
             else:
+                face_is_clicked = False
                 lmb_down = False
 
             if mouse[2]:
                 if not rmb_down:
                     if mouse_tile:
-                        if grid[mouse_tile[0]][mouse_tile[1]][2]:
-                            grid[mouse_tile[0]][mouse_tile[1]][2] = False
+                        if not grid[mouse_tile[0]][mouse_tile[1]][2]:
+                            if remaining_mines > 0:
+                                remaining_mines -= 1
+                                print(remaining_mines)
+                                grid[mouse_tile[0]][mouse_tile[1]][2] = True
                         else:
-                            grid[mouse_tile[0]][mouse_tile[1]][2] = True
+                            remaining_mines += 1
+                            print(remaining_mines)
+                            grid[mouse_tile[0]][mouse_tile[1]][2] = False
                     rmb_down = True
             else:
                 rmb_down = False
@@ -210,7 +240,8 @@ def main():
             reveal_all_tiles(grid)
 
         screen.blit(background, (0, 0))
-        draw_grid(screen, grid, tile_size, font, grid_pos, sprites, is_dead)
+        draw_grid(screen, grid, tile_size, font, grid_pos, tile_sprites, is_dead)
+        draw_face(screen, face_sprites, face_is_clicked, is_dead)
         pygame.display.update()
         clock.tick(fps)
 
