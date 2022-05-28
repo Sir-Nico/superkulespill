@@ -1,6 +1,4 @@
-from turtle import back
 import pygame
-import math
 import random
 import sys
 
@@ -41,8 +39,6 @@ def draw_grid(screen, grid, tile_size, font, pos, sprites, is_dead):
                 if tile[0] != "X" and is_dead:
                     tile_sprite = sprites[4]
             else:
-                pygame.draw.rect(screen, (50, 50, 50), (j * tile_size +
-                                 pos.x, i * tile_size + pos.y, tile_size-1, tile_size-1))
                 tile_sprite = sprites[1]
 
             if len(tile) > 3 and is_dead:
@@ -57,7 +53,6 @@ def draw_grid(screen, grid, tile_size, font, pos, sprites, is_dead):
             if adj_text:
                 if tile[0] > 0:
                     screen.blit(adj_text, adj_rect)
-
 
 
 def get_adjacencies(grid):
@@ -107,10 +102,10 @@ def get_tile_from_mouse(grid, size, pos):
     return current_tile
 
 
-def reveal_all_tiles(grid):
+def reveal_all_mines(grid):
     for row in grid:
         for tile in row:
-            if tile[2]:
+            if tile[2] or isinstance(tile[0], int):
                 continue
             tile[1] = False
 
@@ -138,6 +133,7 @@ def draw_face(screen, face_sprites, is_clicked, is_dead):
 
     screen.blit(face_image, face_pos)
 
+
 def main():
     # Pygame setup
     pygame.init()
@@ -152,7 +148,7 @@ def main():
     font = pygame.font.SysFont("idk", tile_size * 4 // 3)
     grid_w, grid_h = 30, 16
     mines = 99
-    remaining_mines = 99
+    remaining_flags = 99
     grid = grid_setup((grid_w, grid_h), mines)
     grid_pos = pygame.math.Vector2((120, 200))
     lmb_down = False
@@ -197,10 +193,11 @@ def main():
             break
 
         if is_dead:
-            reveal_all_tiles(grid)
+            reveal_all_mines(grid)
             if mouse[0] and 442 <= mousepos.x <= 505 and 80 <= mousepos.y <= 143:
                 face_is_clicked = True
-                grid = grid_setup((grid_w, grid_h), 99)
+                grid = grid_setup((grid_w, grid_h), mines)
+                remaining_flags = mines
                 is_dead = False
 
         if not is_dead:
@@ -210,7 +207,8 @@ def main():
                         is_dead, grid = reveal_tile(grid, mouse_tile[0], mouse_tile[1])
                     if 442 <= mousepos.x <= 505 and 80 <= mousepos.y <= 143:
                         face_is_clicked = True
-                        grid = grid_setup((grid_w, grid_h), 99)
+                        grid = grid_setup((grid_w, grid_h), mines)
+                        remaining_flags = mines
                         is_dead = False
                     else:
                         face_is_clicked = False
@@ -222,14 +220,14 @@ def main():
             if mouse[2]:
                 if not rmb_down:
                     if mouse_tile:
-                        if not grid[mouse_tile[0]][mouse_tile[1]][2]:
-                            if remaining_mines > 0:
-                                remaining_mines -= 1
-                                print(remaining_mines)
+                        if not grid[mouse_tile[0]][mouse_tile[1]][2] and grid[mouse_tile[0]][mouse_tile[1]][1]:
+                            if remaining_flags > 0:
+                                remaining_flags -= 1
+                                print(remaining_flags)
                                 grid[mouse_tile[0]][mouse_tile[1]][2] = True
-                        else:
-                            remaining_mines += 1
-                            print(remaining_mines)
+                        elif grid[mouse_tile[0]][mouse_tile[1]][2] and grid[mouse_tile[0]][mouse_tile[1]][1]:
+                            remaining_flags += 1
+                            print(remaining_flags)
                             grid[mouse_tile[0]][mouse_tile[1]][2] = False
                     rmb_down = True
             else:
@@ -237,8 +235,6 @@ def main():
 
         if keys[pygame.K_ESCAPE]:
             pygame.event.post(pygame.event.Event(pygame.QUIT))
-        if keys[pygame.K_u]:
-            reveal_all_tiles(grid)
         if keys[pygame.K_b]:
             pygame.display.set_caption("Bosnia 1994 Simulator")  # If you know you know
             pygame.display.set_icon(pygame.image.load("Assets/minesweeper/takethel.png"))
