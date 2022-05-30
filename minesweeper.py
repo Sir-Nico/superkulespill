@@ -31,10 +31,11 @@ def draw_grid(screen, grid, tile_size, font, colours, pos, sprites, is_dead):
                 else:
                     tile_sprite = sprites[0]
                     if tile[0] > 0:
-                        adj_text = font.render(str(tile[0]), True, colours[tile[0]-1])
+                        adj_text = font.render(
+                            str(tile[0]), True, colours[tile[0]-1])
                         adj_rect = adj_text.get_rect()
-                        adj_rect.topleft = (
-                            j * tile_size + pos.x + 5, i * tile_size + pos.y)
+                        adj_rect.center = (
+                            j * tile_size + pos.x + (tile_size // 2), i * tile_size + pos.y + (tile_size // 2) + 1)
             elif tile[2]:
                 tile_sprite = sprites[5]
                 if tile[0] != "X" and is_dead:
@@ -132,25 +133,26 @@ def reveal_tile(grid, y, x):
     return False, grid
 
 
-def draw_face(screen, face_sprites, is_clicked, is_dead):
+def draw_face(screen, face_sprites, is_clicked, is_dead, has_won):
     face_pos = (442, 80)
     face_image = face_sprites[0]
     if is_clicked:
         face_image = face_sprites[1]
     elif is_dead:
         face_image = face_sprites[3]
+    elif has_won:
+        face_image = face_sprites[2]
 
     screen.blit(face_image, face_pos)
 
 
 def check_board(grid):
+    remaining_tiles = 0
     for row in grid:
         for tile in row:
-            if tile[2]:
-                continue
             if tile[1]:
-                return False
-    return True
+                remaining_tiles += 1
+    return remaining_tiles
 
 
 def main():
@@ -162,39 +164,54 @@ def main():
     pygame.display.set_icon(pygame.image.load("Assets/minesweeper/mine.png"))
     clock = pygame.time.Clock()
     fps = 60
+    pygame.mixer.init()
+    pygame.mixer.music.load("Assets/minesweeper/minesweeper_bmode_music.mp3")
 
     tile_size = 24
     font = pygame.font.SysFont(None, tile_size * 4 // 3)
     grid_w, grid_h = 30, 16
     mines = 99
-    remaining_flags = 99
+    flag_mine_difference = 99
     grid = grid_setup((grid_w, grid_h), mines)
     grid_pos = pygame.math.Vector2((120, 200))
     lmb_down = False
     rmb_down = False
+    b_down = False
+    bosnian_mode = False
     is_dead = False
     face_is_clicked = False
+    has_won = False
 
     # Number colours
-    colours = [(0,0,255), (0,100,0), (255,0,0), (100,0,100), (0,100,100), (100,100,100), (31,31,31), (110,110,110)]
+    colours = [(0, 0, 255), (0, 100, 0), (255, 0, 0), (100, 0, 100),
+               (0, 100, 100), (100, 100, 100), (31, 31, 31), (110, 110, 110)]
 
     # Loading in background image
     background = pygame.image.load("Assets/minesweeper/background.png")
-    
+
     # Loading in assets and scaling tile assets to tile size
-    tile_revealed_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/tile_revealed.png"), (tile_size, tile_size)).convert_alpha()
-    tile_hidden_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/tile_hidden.png"), (tile_size, tile_size)).convert_alpha()
-    mine_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/mine.png"), (tile_size, tile_size)).convert_alpha()
-    mine_clicked_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/takethel.png"), (tile_size, tile_size)).convert_alpha()
-    false_flag_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/youdungoofed.png"), (tile_size, tile_size)).convert_alpha()
-    tile_flagged_sprite = pygame.transform.smoothscale(pygame.image.load("Assets/minesweeper/tile_flagged.png"), (tile_size, tile_size)).convert_alpha()
-    tile_sprites = [tile_revealed_sprite, tile_hidden_sprite, mine_sprite, mine_clicked_sprite, false_flag_sprite, tile_flagged_sprite]
+    tile_revealed_sprite = pygame.transform.smoothscale(pygame.image.load(
+        "Assets/minesweeper/tile_revealed.png"), (tile_size, tile_size)).convert_alpha()
+    tile_hidden_sprite = pygame.transform.smoothscale(pygame.image.load(
+        "Assets/minesweeper/tile_hidden.png"), (tile_size, tile_size)).convert_alpha()
+    mine_sprite = pygame.transform.smoothscale(pygame.image.load(
+        "Assets/minesweeper/mine.png"), (tile_size, tile_size)).convert_alpha()
+    mine_clicked_sprite = pygame.transform.smoothscale(pygame.image.load(
+        "Assets/minesweeper/takethel.png"), (tile_size, tile_size)).convert_alpha()
+    false_flag_sprite = pygame.transform.smoothscale(pygame.image.load(
+        "Assets/minesweeper/youdungoofed.png"), (tile_size, tile_size)).convert_alpha()
+    tile_flagged_sprite = pygame.transform.smoothscale(pygame.image.load(
+        "Assets/minesweeper/tile_flagged.png"), (tile_size, tile_size)).convert_alpha()
+    tile_sprites = [tile_revealed_sprite, tile_hidden_sprite, mine_sprite,
+                    mine_clicked_sprite, false_flag_sprite, tile_flagged_sprite]
 
     face_sprite = pygame.image.load("Assets/minesweeper/face_normal.png")
-    face_clicked_sprite = pygame.image.load("Assets/minesweeper/face_clicked.png")
+    face_clicked_sprite = pygame.image.load(
+        "Assets/minesweeper/face_clicked.png")
     face_won_sprite = pygame.image.load("Assets/minesweeper/face_won.png")
     face_dead_sprite = pygame.image.load("Assets/minesweeper/face_dead.png")
-    face_sprites = [face_sprite, face_clicked_sprite, face_won_sprite, face_dead_sprite]
+    face_sprites = [face_sprite, face_clicked_sprite,
+                    face_won_sprite, face_dead_sprite]
 
     # Main loop
     running = True
@@ -206,7 +223,7 @@ def main():
                 break
 
         try:
-            board_is_empty = check_board(grid)
+            remaining_tiles = check_board(grid)
             keys = pygame.key.get_pressed()
             mouse_tile = get_tile_from_mouse(grid, tile_size, grid_pos)
             mouse = pygame.mouse.get_pressed()
@@ -215,41 +232,45 @@ def main():
             pygame.quit()
             break
 
-        if remaining_flags == 0 and board_is_empty:
-            print("You Won!")
+        # WIN
+        if remaining_tiles == mines and not is_dead:
+            has_won = True
 
         if is_dead:
             reveal_all_mines(grid)
             if mouse[0] and 442 <= mousepos.x <= 505 and 80 <= mousepos.y <= 143:
                 face_is_clicked = True
                 grid = grid_setup((grid_w, grid_h), mines)
-                remaining_flags = mines
+                flag_mine_difference = mines
                 is_dead = False
+                has_won = False
 
         if not is_dead:
             if mouse[0]:
                 if not lmb_down:
                     if mouse_tile and grid[mouse_tile[0]][mouse_tile[1]][1] and not grid[mouse_tile[0]][mouse_tile[1]][2]:
-                        is_dead, grid = reveal_tile(grid, mouse_tile[0], mouse_tile[1])
+                        is_dead, grid = reveal_tile(
+                            grid, mouse_tile[0], mouse_tile[1])
                     if mouse_tile and not grid[mouse_tile[0]][mouse_tile[1]][1] and not grid[mouse_tile[0]][mouse_tile[1]][2]:
                         adj_flags = 0
-                        for nx, ny in [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]:  # Sjekker naboer
+                        for nx, ny in [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]:
                             if mouse_tile[1] + nx >= 0 and mouse_tile[1] + nx < len(grid[0]) and mouse_tile[0] + ny >= 0 and mouse_tile[0]+ny < len(grid):
                                 if grid[mouse_tile[0]+ny][mouse_tile[1]+nx][2]:
                                     adj_flags += 1
-                        print(adj_flags)
                         if isinstance(grid[mouse_tile[0]][mouse_tile[1]][0], int) and adj_flags == grid[mouse_tile[0]][mouse_tile[1]][0]:
-                            for nx, ny in [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]:  # Sjekker naboer
+                            for nx, ny in [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]:
                                 if mouse_tile[1] + nx >= 0 and mouse_tile[1] + nx < len(grid[0]) and mouse_tile[0] + ny >= 0 and mouse_tile[0]+ny < len(grid):
                                     if not grid[mouse_tile[0]+ny][mouse_tile[1]+nx][2] and grid[mouse_tile[0]+ny][mouse_tile[1]+nx][1]:
                                         if not is_dead:
-                                            is_dead, grid = reveal_tile(grid, mouse_tile[0]+ny, mouse_tile[1]+nx)
-                                    
+                                            is_dead, grid = reveal_tile(
+                                                grid, mouse_tile[0]+ny, mouse_tile[1]+nx)
+
                     if 442 <= mousepos.x <= 505 and 80 <= mousepos.y <= 143:
                         face_is_clicked = True
                         grid = grid_setup((grid_w, grid_h), mines)
-                        remaining_flags = mines
+                        flag_mine_difference = mines
                         is_dead = False
+                        has_won = False
                     else:
                         face_is_clicked = False
                     lmb_down = True
@@ -261,13 +282,12 @@ def main():
                 if not rmb_down:
                     if mouse_tile:
                         if not grid[mouse_tile[0]][mouse_tile[1]][2] and grid[mouse_tile[0]][mouse_tile[1]][1]:
-                            if remaining_flags > 0:
-                                remaining_flags -= 1
-                                print(remaining_flags)
-                                grid[mouse_tile[0]][mouse_tile[1]][2] = True
+                            flag_mine_difference -= 1
+                            print(flag_mine_difference)
+                            grid[mouse_tile[0]][mouse_tile[1]][2] = True
                         elif grid[mouse_tile[0]][mouse_tile[1]][2] and grid[mouse_tile[0]][mouse_tile[1]][1]:
-                            remaining_flags += 1
-                            print(remaining_flags)
+                            flag_mine_difference += 1
+                            print(flag_mine_difference)
                             grid[mouse_tile[0]][mouse_tile[1]][2] = False
                     rmb_down = True
             else:
@@ -275,17 +295,38 @@ def main():
 
         if keys[pygame.K_ESCAPE]:
             pygame.event.post(pygame.event.Event(pygame.QUIT))
+
         if keys[pygame.K_b]:
-            pygame.display.set_caption("Bosnia 1994 Simulator")  # If you know you know
-            pygame.display.set_icon(pygame.image.load("Assets/minesweeper/takethel.png"))
+            if not b_down and not bosnian_mode:
+                b_down = True
+                bosnian_mode = True
+                background = pygame.image.load("Assets/minesweeper/bosnia_bg.png")
+                pygame.display.set_caption(
+                    "Bosnia 1994 Simulator")  # If you know you know
+                pygame.display.set_icon(pygame.image.load(
+                    "Assets/minesweeper/takethel.png"))
+                pygame.mixer.music.play(-1)
+            elif not b_down and bosnian_mode:
+                b_down = True
+                bosnian_mode = False
+                background = pygame.image.load("Assets/minesweeper/background.png")
+                pygame.display.set_caption("Minesweeper")
+                pygame.display.set_icon(pygame.image.load(
+                    "Assets/minesweeper/mine.png"))
+                pygame.mixer.music.stop()
+        else:
+            b_down = False
+
         if keys[pygame.K_r]:
             reveal_all_mines(grid)
+
         if keys[pygame.K_h]:
             hide_all_mines(grid)
 
         screen.blit(background, (0, 0))
-        draw_grid(screen, grid, tile_size, font, colours, grid_pos, tile_sprites, is_dead)
-        draw_face(screen, face_sprites, face_is_clicked, is_dead)
+        draw_grid(screen, grid, tile_size, font, colours,
+                  grid_pos, tile_sprites, is_dead)
+        draw_face(screen, face_sprites, face_is_clicked, is_dead, has_won)
         pygame.display.update()
         clock.tick(fps)
 
