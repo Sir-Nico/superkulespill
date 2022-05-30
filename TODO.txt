@@ -1,0 +1,8 @@
+THINGS TO DO (IN ORDER OF PRIORITY)
+
+Minesweeper
+1. Add a display that shows amount of mines remaining.
+2. Add a victory screen
+
+Launcher Window
+1. Gjøre det pent
