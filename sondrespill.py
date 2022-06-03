@@ -210,6 +210,8 @@ def setup_level_2(player, enemies, walls, tile):
 
 def main():
     pygame.init()
+    pygame.mixer.init()
+    pygame.mixer.music.load("Assets/sondrespill/musicintense.mp3")
     dis_width, dis_height = 500, 500
     dis = pygame.display.set_mode((dis_width, dis_height))
     pygame.display.set_caption('sondre spill')
@@ -237,6 +239,7 @@ def main():
     text2Rect = text2.get_rect()
     text2Rect.center = (dis_width // 2, tile*12)
 
+    pygame.mixer.music.play(-1)
     running = True
     quitted = False
     while running:
@@ -268,7 +271,7 @@ def main():
     deadtextRect = deadtext.get_rect()
     deadtextRect.center = (dis_width // 2, dis_height // 2)
 
-    wintext = font.render('Du vant.', True, red, blue)
+    wintext = font.render('Du er flink.', True, red, blue)
     wintextrect = deadtext.get_rect()
     wintextrect.center = (dis_width // 2, dis_height // 2)
     
