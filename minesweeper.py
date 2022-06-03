@@ -21,7 +21,7 @@ def grid_setup(dimensions, mines):
     return grid
 
 
-def draw_grid(screen, grid, tile_size, font, colours, pos, sprites, is_dead):
+def draw_grid(screen, grid, tile_size, font, colours, pos, sprites, is_dead, sondre):
     for i, row in enumerate(grid):
         for j, tile in enumerate(row):
             adj_text = None
@@ -36,6 +36,8 @@ def draw_grid(screen, grid, tile_size, font, colours, pos, sprites, is_dead):
                         adj_rect = adj_text.get_rect()
                         adj_rect.center = (
                             j * tile_size + pos.x + (tile_size // 2), i * tile_size + pos.y + (tile_size // 2) + 1)
+                    if tile[0] == 0 and len(tile) > 3:
+                        tile_sprite = sondre
             elif tile[2]:
                 tile_sprite = sprites[5]
                 if tile[0] != "X" and is_dead:
@@ -43,7 +45,7 @@ def draw_grid(screen, grid, tile_size, font, colours, pos, sprites, is_dead):
             else:
                 tile_sprite = sprites[1]
 
-            if len(tile) > 3 and is_dead:
+            if len(tile) > 3 and is_dead and tile[3] != "Sondre":
                 tile_sprite = sprites[3]
 
             if tile_sprite:
@@ -155,17 +157,27 @@ def check_board(grid):
     return remaining_tiles
 
 
+def hide_sondre(grid):
+    is_hidden = False
+    for row in grid:
+        for tile in row:
+            if isinstance(tile[0], int) and tile[0] == 0 and not is_hidden:
+                if random.randint(1, 50) == 1:
+                    tile.append("Sondre")
+                    is_hidden = True
+    return grid
+
+
 def main():
     # Pygame setup
     pygame.init()
+    pygame.mixer.init()
     screen_w, screen_h = 960, 720
     screen = pygame.display.set_mode((screen_w, screen_h))
     pygame.display.set_caption("Minesweeper")
     pygame.display.set_icon(pygame.image.load("Assets/minesweeper/mine.png"))
     clock = pygame.time.Clock()
     fps = 60
-    pygame.mixer.init()
-    pygame.mixer.music.load("Assets/minesweeper/minesweeper_bmode_music.mp3")
 
     tile_size = 24
     font = pygame.font.SysFont(None, tile_size * 4 // 3)
@@ -173,6 +185,7 @@ def main():
     mines = 99
     flag_mine_difference = 99
     grid = grid_setup((grid_w, grid_h), mines)
+    grid = hide_sondre(grid)
     grid_pos = pygame.math.Vector2((120, 200))
     lmb_down = False
     rmb_down = False
@@ -184,7 +197,7 @@ def main():
 
     # Number colours
     colours = [(0, 0, 255), (0, 100, 0), (255, 0, 0), (100, 0, 100),
-               (0, 100, 100), (100, 100, 100), (31, 31, 31), (110, 110, 110)]
+               (64, 64, 0), (100, 100, 100), (31, 31, 31), (110, 110, 110)]
 
     # Loading in background image
     background = pygame.image.load("Assets/minesweeper/background.png")
@@ -213,7 +226,13 @@ def main():
     face_sprites = [face_sprite, face_clicked_sprite,
                     face_won_sprite, face_dead_sprite]
 
+    sondre = pygame.transform.smoothscale(pygame.image.load(
+        "Assets/minesweeper/nowaysondray.png"), (tile_size, tile_size)).convert_alpha()
+
+
     # Main loop
+    pygame.mixer.music.load("Assets/minesweeper/minesweep.mp3")
+    pygame.mixer.music.play(-1)
     running = True
     while running:
 
@@ -241,6 +260,7 @@ def main():
             if mouse[0] and 442 <= mousepos.x <= 505 and 80 <= mousepos.y <= 143:
                 face_is_clicked = True
                 grid = grid_setup((grid_w, grid_h), mines)
+                grid = hide_sondre(grid)
                 flag_mine_difference = mines
                 is_dead = False
                 has_won = False
@@ -268,6 +288,7 @@ def main():
                     if 442 <= mousepos.x <= 505 and 80 <= mousepos.y <= 143:
                         face_is_clicked = True
                         grid = grid_setup((grid_w, grid_h), mines)
+                        grid = hide_sondre(grid)
                         flag_mine_difference = mines
                         is_dead = False
                         has_won = False
@@ -305,6 +326,8 @@ def main():
                     "Bosnia 1994 Simulator")  # If you know you know
                 pygame.display.set_icon(pygame.image.load(
                     "Assets/minesweeper/takethel.png"))
+                pygame.mixer.music.stop()
+                pygame.mixer.music.load("Assets/minesweeper/bosnian.mp3")
                 pygame.mixer.music.play(-1)
             elif not b_down and bosnian_mode:
                 b_down = True
@@ -314,6 +337,8 @@ def main():
                 pygame.display.set_icon(pygame.image.load(
                     "Assets/minesweeper/mine.png"))
                 pygame.mixer.music.stop()
+                pygame.mixer.music.load("Assets/minesweeper/minesweep.mp3")
+                pygame.mixer.music.play(-1)
         else:
             b_down = False
 
@@ -325,7 +350,7 @@ def main():
 
         screen.blit(background, (0, 0))
         draw_grid(screen, grid, tile_size, font, colours,
-                  grid_pos, tile_sprites, is_dead)
+                  grid_pos, tile_sprites, is_dead, sondre)
         draw_face(screen, face_sprites, face_is_clicked, is_dead, has_won)
         pygame.display.update()
         clock.tick(fps)

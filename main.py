@@ -13,7 +13,7 @@ def window_setup():
     ttt_btn = tkinter.Button(root, text="Tic Tac Toe",
                         command=lambda:play_game(root, tictactoe))
     ttt_btn.pack(anchor="center")
-    sondre_btn = tkinter.Button(root, text='NYHET: sondre spill', 
+    sondre_btn = tkinter.Button(root, text='sondre spill: Definitive Edition', 
                         command=lambda:play_game(root, sondrespill))
     sondre_btn.pack(anchor="center")
     mine_btn = tkinter.Button(root, text="Minesweeper",
